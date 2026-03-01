@@ -1,7 +1,5 @@
 """Pytest fixtures and config."""
 import socket
-import tempfile
-from pathlib import Path
 
 import pytest
 
@@ -14,16 +12,10 @@ def _free_port() -> int:
 
 @pytest.fixture
 def free_port() -> int:
-    """Return a port number that is currently free."""
+    """Return a port number that is currently free (bind to 0, then close).
+    Note: TOCTOU race—another process could take the port before the test binds.
+    In noisy CI, consider retry on bind failure."""
     return _free_port()
-
-
-@pytest.fixture
-def temp_file(tmp_path: Path) -> Path:
-    """A temporary file with some content."""
-    f = tmp_path / "testfile.bin"
-    f.write_bytes(b"test content\n")
-    return f
 
 
 @pytest.fixture

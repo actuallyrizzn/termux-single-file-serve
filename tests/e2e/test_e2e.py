@@ -1,4 +1,8 @@
-"""End-to-end tests: run serve.py as subprocess, request file, verify exit and cleanup."""
+"""End-to-end tests: run serve.py as subprocess, request file, verify exit and cleanup.
+
+Cleanup removes global termux-serve-* dirs in gettempdir(). If adding parallel e2e tests,
+consider process- or test-specific temp dirs to avoid one test removing another's dirs.
+"""
 import glob
 import shutil
 import subprocess
@@ -39,8 +43,9 @@ class TestE2E:
                     url = line
                     break
                 time.sleep(0.05)
-            assert url is not None, f"Expected URL in stdout. stderr: {proc.stderr.read() if proc.stderr else ''}"
-            # Request the file in another thread so the server can respond and exit
+            stderr_diag = (proc.stderr.read() if proc.stderr else "") if url is None else ""
+            assert url is not None, f"Expected URL in stdout. stderr: {stderr_diag}"
+            # GET thread triggers server to serve and exit; we then wait for the process to exit.
             body = []
             def do_get():
                 try:
