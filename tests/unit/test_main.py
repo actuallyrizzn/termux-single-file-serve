@@ -56,6 +56,37 @@ class TestMainPortValidation:
 
 
 @pytest.mark.unit
+class TestTimeoutValidation:
+    def test_timeout_zero_rejected(self):
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".bin") as f:
+            f.write(b"x")
+            path = f.name
+        try:
+            old_argv = sys.argv
+            sys.argv = ["serve.py", path, "--timeout", "0"]
+            try:
+                assert main() == 1
+            finally:
+                sys.argv = old_argv
+        finally:
+            os.unlink(path)
+
+    def test_timeout_negative_rejected(self):
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".bin") as f:
+            f.write(b"x")
+            path = f.name
+        try:
+            old_argv = sys.argv
+            sys.argv = ["serve.py", path, "--timeout", "-1"]
+            try:
+                assert main() == 1
+            finally:
+                sys.argv = old_argv
+        finally:
+            os.unlink(path)
+
+
+@pytest.mark.unit
 class TestCleanupFailure:
     """Cleanup failure is reported to stderr and process exits non-zero."""
 

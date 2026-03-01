@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.0] - 2025-03-01
+
+### Added
+
+- `--timeout SECONDS`: exit with code 1 if no download within the given time; cleanup temp dir on timeout (closes #4).
+
+## [1.0.3] - 2025-03-01
+
+### Fixed
+
+- Report cleanup failure: if temp directory removal fails, print error to stderr and exit with code 1 (closes #3).
+
 ## [1.0.2] - 2025-03-01
 
 ### Changed

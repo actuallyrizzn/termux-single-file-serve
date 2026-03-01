@@ -89,7 +89,18 @@ def main() -> int:
         help="Address to bind to (default: 127.0.0.1). Use 0.0.0.0 to allow other devices/interfaces.",
     )
     parser.add_argument("-q", "--quiet", action="store_true", help="Only print the download URL")
+    parser.add_argument(
+        "--timeout",
+        type=float,
+        default=None,
+        metavar="SECONDS",
+        help="Exit if no download within SECONDS (default: wait indefinitely). On timeout, cleanup and exit with code 1.",
+    )
     args = parser.parse_args()
+
+    if args.timeout is not None and args.timeout <= 0:
+        print(f"Error: timeout must be positive, got {args.timeout}", file=sys.stderr)
+        return 1
 
     if not (1 <= args.port <= 65535):
         print(f"Error: port must be between 1 and 65535, got {args.port}", file=sys.stderr)
@@ -138,7 +149,15 @@ def main() -> int:
         print(f"  {url}{url_note}")
         print("(Server exits after first download.)")
 
-    shutdown_event.wait()
+    if args.timeout is None:
+        shutdown_event.wait()
+    else:
+        if not shutdown_event.wait(timeout=args.timeout):
+            print("Error: no download within timeout", file=sys.stderr)
+            server.shutdown()
+            server.server_close()
+            _remove_tmpdir(tmpdir)
+            return 1
     server.shutdown()
     server.server_close()
     if not _remove_tmpdir(tmpdir):
