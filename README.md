@@ -5,6 +5,8 @@
 
 Single-use HTTP server for Termux: serve one file over localhost, then cleanup and exit after the first request for the file.
 
+- **[Skills & technologies](SKILLS.md)** — What this project is built with and what you need to contribute.
+
 ## Documentation
 
 Full documentation is in the **[docs](docs/)** folder:
