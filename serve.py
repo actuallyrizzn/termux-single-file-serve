@@ -44,7 +44,8 @@ class SingleFileHandler(SimpleHTTPRequestHandler):
         if not served_path or not safe_name:
             self.send_error(500, "Server misconfigured")
             return
-        path = unquote(self.path)
+        # Use path only (strip query string); intentional exact-match after unquote (no slash normalization or path traversal).
+        path = unquote(self.path.split("?", 1)[0])
         if path.startswith("/"):
             path = path[1:]
         if path != safe_name:
@@ -59,7 +60,9 @@ class SingleFileHandler(SimpleHTTPRequestHandler):
         self.send_response(200)
         self.send_header("Content-Type", "application/octet-stream")
         self.send_header("Content-Length", str(len(data)))
+        # safe_name is URL-sanitized (no quotes/newlines); safe for header value.
         self.send_header("Content-Disposition", f'attachment; filename="{safe_name}"')
+        self.send_header("Connection", "close")
         self.end_headers()
         self.wfile.write(data)
         self.wfile.flush()
@@ -127,13 +130,16 @@ def main() -> int:
     bind = args.bind
 
     class Server(HTTPServer):
-        _served_path = served_path
-        _safe_name = safe_name
+        """HTTPServer that serves one file; attributes set explicitly in __init__."""
 
-        def _on_download_done(self):
-            shutdown_event.set()
+        def __init__(self, server_address, RequestHandlerClass, served_path, safe_name, on_download_done):
+            super().__init__(server_address, RequestHandlerClass)
+            self._served_path = served_path
+            self._safe_name = safe_name
+            self._on_download_done = on_download_done
 
-    server = Server((bind, port), SingleFileHandler)
+    server = Server((bind, port), SingleFileHandler, served_path, safe_name, shutdown_event.set)
+    # Daemon thread so process can exit without joining; main thread runs shutdown/cleanup.
     server_thread = threading.Thread(target=server.serve_forever, daemon=True)
     server_thread.start()
 

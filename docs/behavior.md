@@ -6,7 +6,7 @@ This page describes exactly how the program runs and when it exits.
 
 1. **Validate:** Resolve the given path with `os.path.abspath` (which follows symlinks) and check it is a regular file. The file actually served is this resolved target, not necessarily the path the user passed. Exit with code 1 and an error message if not a file.
 2. **Copy:** Compute a URL-safe basename (see [Configuration](configuration.md)). Create a temporary directory (prefix `termux-serve-`), copy the file there with the safe name.
-3. **Serve:** Start an HTTP server bound to the configured address and port. The server handles only GET requests; any other method gets a 405 or similar from the base handler. Only the exact path `/<safe_name>` is served; all other paths return 404.
+3. **Serve:** Start an HTTP server bound to the configured address and port. The server handles only GET requests; any other method gets a 405 or similar from the base handler. Only the path `/<safe_name>` is served (the query string, if any, is ignored; e.g. `GET /file.apk?x=1` is treated as `GET /file.apk`). All other paths return 404.
 4. **Print URL:** Print the download URL (and optionally a note for `0.0.0.0`). In quiet mode, only the URL is printed.
 5. **Wait:** Block until the “download done” event is set (see below).
 6. **Cleanup:** Call `server.shutdown()`, `server_close()`, then `shutil.rmtree(tmpdir)`. The same cleanup runs if the process receives SIGINT (e.g. Ctrl+C) or SIGTERM: a signal handler sets the shutdown event so the main thread exits the wait and performs shutdown and temp-dir removal. If removal fails (e.g. permission, NFS, open handle), an error is printed to stderr and the process exits with code 1; otherwise exit 0.
