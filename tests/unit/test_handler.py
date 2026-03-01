@@ -1,4 +1,5 @@
 """Unit tests for SingleFileHandler."""
+import os
 import tempfile
 from io import BytesIO
 from unittest.mock import Mock
@@ -36,7 +37,6 @@ class TestSingleFileHandler:
             handler.do_GET()
             return handler, server
         finally:
-            import os
             try:
                 os.unlink(served_path)
             except OSError:

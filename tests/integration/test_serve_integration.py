@@ -6,6 +6,7 @@ import sys
 import tempfile
 import threading
 from http.server import HTTPServer
+from urllib.error import HTTPError
 from urllib.request import urlopen
 
 import pytest
@@ -18,7 +19,7 @@ class TestServeIntegration:
     def test_server_serves_file_then_shuts_down(self, free_port: int, sample_content: bytes):
         tmpdir = tempfile.mkdtemp(prefix="termux-serve-test-")
         try:
-            served_path = f"{tmpdir}/testfile.bin"
+            served_path = os.path.join(tmpdir, "testfile.bin")
             with open(served_path, "wb") as f:
                 f.write(sample_content)
             safe_name = "testfile.bin"
@@ -50,7 +51,7 @@ class TestServeIntegration:
     def test_server_returns_404_for_wrong_path(self, free_port: int, sample_content: bytes):
         tmpdir = tempfile.mkdtemp(prefix="termux-serve-test-")
         try:
-            served_path = f"{tmpdir}/real.bin"
+            served_path = os.path.join(tmpdir, "real.bin")
             with open(served_path, "wb") as f:
                 f.write(sample_content)
             safe_name = "real.bin"
@@ -67,7 +68,7 @@ class TestServeIntegration:
             server_thread = threading.Thread(target=server.serve_forever, daemon=True)
             server_thread.start()
             try:
-                with pytest.raises(Exception):  # HTTPError 404
+                with pytest.raises(HTTPError):
                     urlopen(f"http://127.0.0.1:{free_port}/wrong.bin", timeout=5)
                 assert not shutdown_event.is_set()
             finally:
