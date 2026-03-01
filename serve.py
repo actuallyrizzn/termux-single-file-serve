@@ -68,6 +68,16 @@ class SingleFileHandler(SimpleHTTPRequestHandler):
         pass  # Quiet by default; remove to re-enable request logging
 
 
+def _remove_tmpdir(tmpdir: str) -> bool:
+    """Remove temp directory; on failure print to stderr and return False."""
+    try:
+        shutil.rmtree(tmpdir)
+        return True
+    except OSError as e:
+        print(f"Error: failed to remove temp directory {tmpdir}: {e}", file=sys.stderr)
+        return False
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="Serve one file over HTTP, then cleanup after download.")
     parser.add_argument("file", help="Path to the file to share")
@@ -97,7 +107,7 @@ def main() -> int:
         shutil.copy2(src, served_path)
     except OSError as e:
         print(f"Error copying file: {e}", file=sys.stderr)
-        shutil.rmtree(tmpdir, ignore_errors=True)
+        _remove_tmpdir(tmpdir)
         return 1
 
     shutdown_event = threading.Event()
@@ -131,7 +141,8 @@ def main() -> int:
     shutdown_event.wait()
     server.shutdown()
     server.server_close()
-    shutil.rmtree(tmpdir, ignore_errors=True)
+    if not _remove_tmpdir(tmpdir):
+        return 1
     return 0
 
 

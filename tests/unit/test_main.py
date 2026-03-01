@@ -1,11 +1,13 @@
 """Unit tests for main() entry point and validation."""
+import io
 import os
 import sys
 import tempfile
+from unittest.mock import patch
 
 import pytest
 
-from serve import main
+from serve import main, _remove_tmpdir
 
 
 @pytest.mark.unit
@@ -51,3 +53,18 @@ class TestMainPortValidation:
                 sys.argv = old_argv
         finally:
             os.unlink(path)
+
+
+@pytest.mark.unit
+class TestCleanupFailure:
+    """Cleanup failure is reported to stderr and process exits non-zero."""
+
+    def test_remove_tmpdir_failure_returns_false_and_prints_stderr(self):
+        with patch("serve.shutil.rmtree") as rmtree:
+            rmtree.side_effect = OSError(13, "Permission denied")
+            stderr = io.StringIO()
+            with patch("sys.stderr", stderr):
+                result = _remove_tmpdir("/tmp/termux-serve-xyz")
+            assert result is False
+            assert "failed to remove temp directory" in stderr.getvalue()
+            assert "/tmp/termux-serve-xyz" in stderr.getvalue()
