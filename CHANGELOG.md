@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.5] - 2025-03-01
+
+### Added
+
+- Handler sends `Connection: close` header (closes #11).
+
+### Changed
+
+- Server: explicit constructor with served_path, safe_name, on_download_done (closes #9).
+- Strip query string from request path so e.g. `GET /file.apk?x=1` works (closes #14). Documented in behavior.md.
+
+### Fixed
+
+- In-code comments: daemon thread intent (closes #10), Content-Disposition safe (closes #12), path comparison exact-match (closes #13).
+
 ## [1.1.4] - 2025-03-01
 
 ### Changed
