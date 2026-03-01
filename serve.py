@@ -2,6 +2,12 @@
 """
 Single-use HTTP server: serve one file, then delete temp copy and exit after first download.
 Usage: python serve.py <path-to-file>
+
+Copyright (C) 2025  Contributors to the termux-single-file-serve project
+This program is free software: you can redistribute it and/or modify it under
+the terms of the GNU General Public License as published by the Free Software
+Foundation, either version 3 of the License, or (at your option) any later version.
+See <https://www.gnu.org/licenses/>.
 """
 
 import argparse
@@ -66,8 +72,18 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="Serve one file over HTTP, then cleanup after download.")
     parser.add_argument("file", help="Path to the file to share")
     parser.add_argument("--port", type=int, default=8765, help="Port (default: 8765)")
+    parser.add_argument(
+        "--bind",
+        default="127.0.0.1",
+        metavar="ADDR",
+        help="Address to bind to (default: 127.0.0.1). Use 0.0.0.0 to allow other devices/interfaces.",
+    )
     parser.add_argument("-q", "--quiet", action="store_true", help="Only print the download URL")
     args = parser.parse_args()
+
+    if not (1 <= args.port <= 65535):
+        print(f"Error: port must be between 1 and 65535, got {args.port}", file=sys.stderr)
+        return 1
 
     src = os.path.abspath(args.file)
     if not os.path.isfile(src):
@@ -86,6 +102,7 @@ def main() -> int:
 
     shutdown_event = threading.Event()
     port = args.port
+    bind = args.bind
 
     class Server(HTTPServer):
         _served_path = served_path
@@ -94,16 +111,21 @@ def main() -> int:
         def _on_download_done(self):
             shutdown_event.set()
 
-    server = Server(("", port), SingleFileHandler)
+    server = Server((bind, port), SingleFileHandler)
     server_thread = threading.Thread(target=server.serve_forever, daemon=True)
     server_thread.start()
 
-    url = f"http://127.0.0.1:{port}/{safe_name}"
+    if bind == "0.0.0.0":
+        url = f"http://127.0.0.1:{port}/{safe_name}"
+        url_note = f" (or http://<this-device-ip>:{port}/{safe_name} from another app/device)"
+    else:
+        url = f"http://{bind}:{port}/{safe_name}"
+        url_note = ""
     if args.quiet:
-        print(url)
+        print(url, flush=True)
     else:
         print("Download at:")
-        print(f"  {url}")
+        print(f"  {url}{url_note}")
         print("(Server exits after first download.)")
 
     shutdown_event.wait()
