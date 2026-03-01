@@ -14,6 +14,7 @@ import argparse
 import os
 import re
 import shutil
+import signal
 import sys
 import tempfile
 import threading
@@ -135,6 +136,15 @@ def main() -> int:
     server = Server((bind, port), SingleFileHandler)
     server_thread = threading.Thread(target=server.serve_forever, daemon=True)
     server_thread.start()
+
+    def _on_signal(signum, frame):
+        shutdown_event.set()
+
+    for sig in (signal.SIGINT, signal.SIGTERM):
+        try:
+            signal.signal(sig, _on_signal)
+        except (ValueError, OSError):
+            pass  # SIGTERM not available on all platforms
 
     if bind == "0.0.0.0":
         url = f"http://127.0.0.1:{port}/{safe_name}"
