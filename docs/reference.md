@@ -30,7 +30,7 @@ The program is a single module, `serve.py`, with no public package structure. Th
   - `_on_download_done()` — callable invoked once after the response is sent (used to trigger shutdown).
 - **`do_GET(self)`**
   - Unquotes `self.path`, strips a single leading `/`, and compares to `_safe_name`. If different, sends 404.
-  - Reads the file at `_served_path`, sends 200 with `Content-Type: application/octet-stream` and `Content-Disposition: attachment; filename="<safe_name>"`, writes the body, flushes, then calls `_on_download_done()`.
+  - Reads the **entire file** at `_served_path` into memory, sends 200 with `Content-Type: application/octet-stream` and `Content-Disposition: attachment; filename="<safe_name>"`, writes the body, flushes, then calls `_on_download_done()`. No streaming; large files increase memory use. See [Behavior](behavior.md#whole-file-buffering).
 - **`log_message(self, format, *args)`** — Overridden to no-op (quiet by default).
 
 ## Server setup (inside `main()`)

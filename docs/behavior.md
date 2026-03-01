@@ -23,6 +23,10 @@ So **“download done” means “we have finished sending the response for the 
 
 In practice, for a single file and a normal browser download, this is rarely an issue. For scripting or unreliable networks, be aware that the server exits as soon as it has written the response, not when the client has fully received it.
 
+## Whole-file buffering
+
+The handler reads the entire file into memory with `f.read()` before sending the response. There is no streaming (chunked read/write). For very large files (e.g. multi-gigabyte), this can cause high memory use or out-of-memory errors. The tool is intended for typical single-file sizes (e.g. APKs, documents). If you need to serve very large files, consider a different server that streams.
+
 ## Single request only
 
 Only one request is intended: the first GET for `/<safe_name>`. After that request is handled:
