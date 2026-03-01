@@ -8,7 +8,7 @@ The program is a single module, `serve.py`, with no public package structure. Th
 
 - Parses command-line arguments (`file`, `--port`, `--bind`, `-q`).
 - Validates that `file` is a regular file (after `os.path.abspath`).
-- Copies the file to a temp dir with a URL-safe name, starts the server, prints the URL, waits for the first download, then cleans up and returns 0 or 1.
+- Copies the file to a temp dir with a URL-safe name, starts the server, prints the URL, waits for the first GET that serves the file, then cleans up and returns 0 or 1.
 - Called when the script is run as `__main__`; exit code is passed to `sys.exit(main())`.
 
 ## Functions

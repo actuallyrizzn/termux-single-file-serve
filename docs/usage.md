@@ -17,7 +17,7 @@ The program will:
 1. Copy the file to a temporary directory with a URL-safe name.
 2. Start an HTTP server (default: `127.0.0.1:8765`).
 3. Print the download URL.
-4. Wait for the first request for that file.
+4. Wait for the first GET request for that file (see [Behavior](behavior.md) for when “done” is triggered).
 5. After the response is sent, delete the temp copy and exit.
 
 ## Command-line options
@@ -75,7 +75,7 @@ python3 serve.py ./doc.pdf --bind 0.0.0.0 --port 8080 -q
 ```
 Download at:
   http://127.0.0.1:8765/filename.apk
-(Server exits after first download.)
+(Server exits after first request for the file.)
 ```
 
 When `--bind 0.0.0.0`:
@@ -83,7 +83,7 @@ When `--bind 0.0.0.0`:
 ```
 Download at:
   http://127.0.0.1:8765/filename.apk (or http://<this-device-ip>:8765/filename.apk from another app/device)
-(Server exits after first download.)
+(Server exits after first request for the file.)
 ```
 
 **Quiet (`-q`):** Only the URL line (e.g. `http://127.0.0.1:8765/filename.apk`).
@@ -96,4 +96,4 @@ Download at:
 ## See also
 
 - [Configuration](configuration.md) — Details on `--bind`, `--port`, and URL-safe names
-- [Behavior](behavior.md) — What “first download” means and when the server exits
+- [Behavior](behavior.md) — First GET vs completed transfer; when the server exits

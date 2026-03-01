@@ -39,10 +39,10 @@ Any further connection attempts will get connection refused (server already clos
 - Contains exactly one file: the copy of your file with the URL-safe name.
 - Removed with `shutil.rmtree()` after shutdown. If removal fails (e.g. permission, NFS, open handle), an error is printed to stderr and the process exits with code 1.
 
-## No timeout
+## Optional timeout
 
-The main thread blocks on “download done” with no timeout. If no one ever requests the file, the process will run indefinitely and the temp copy will remain until the process is killed. Future versions may add an optional timeout.
+With `--timeout SECONDS`, the main thread waits at most that long for the first request. If no request is made in time, the server shuts down, the temp dir is removed, and the process exits with code 1. Without `--timeout`, the process waits indefinitely for the first request.
 
 ## Signals
 
-There is no custom signal handler. If you press Ctrl+C (SIGINT) or the process is killed (SIGTERM), the process may exit without running the cleanup step (e.g. while blocked in `shutdown_event.wait()`). In that case the temp directory may be left behind.
+SIGINT (e.g. Ctrl+C) and SIGTERM are handled: a handler sets the shutdown event so the main thread exits the wait, runs shutdown and temp-dir removal, then exits. The temp directory is not left behind when you interrupt the process.

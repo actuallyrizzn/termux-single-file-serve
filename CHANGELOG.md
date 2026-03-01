@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.2] - 2025-03-01
+
+### Changed
+
+- Docs: clarify first GET vs first completed download; server exits after response is sent/flushed, not when client has received all bytes (closes #6). Updated timeout and signals sections in behavior.md.
+
 ## [1.1.1] - 2025-03-01
 
 ### Fixed

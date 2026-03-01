@@ -16,7 +16,7 @@ Security note: binding to `0.0.0.0` makes the file reachable by anyone who can r
 
 ## Timeout (`--timeout`)
 
-- **Default:** None (wait indefinitely for the first download).
+- **Default:** None (wait indefinitely for the first request for the file).
 - If set to a positive number of seconds (e.g. `--timeout 60`), the server will exit if no successful download has occurred within that time. On timeout, the temp directory is removed (if possible), the server shuts down, and the process exits with code 1. Useful for scripts or unattended use to avoid hanging forever and leaving temp files on disk.
 
 ## Port (`--port`)
