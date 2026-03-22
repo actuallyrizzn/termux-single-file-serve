@@ -119,6 +119,44 @@ class TestServeIntegration:
         finally:
             shutil.rmtree(tmpdir, ignore_errors=True)
 
+    def test_health_does_not_consume_one_shot_then_file_download_works(self, free_port: int, sample_content: bytes):
+        """GET /health any number of times must not trigger shutdown; file GET still works once."""
+        tmpdir = tempfile.mkdtemp(prefix="termux-serve-test-")
+        try:
+            served_path = os.path.join(tmpdir, "testfile.bin")
+            with open(served_path, "wb") as f:
+                f.write(sample_content)
+            safe_name = "testfile.bin"
+            shutdown_event = threading.Event()
+
+            class Server(HTTPServer):
+                _served_path = served_path
+                _safe_name = safe_name
+
+                def _on_download_done(self):
+                    shutdown_event.set()
+
+            server = Server(("", free_port), SingleFileHandler)
+            server_thread = threading.Thread(target=server.serve_forever, daemon=True)
+            server_thread.start()
+            base = f"http://127.0.0.1:{free_port}"
+            try:
+                for _ in range(3):
+                    with urlopen(f"{base}/health", timeout=5) as resp:
+                        assert resp.status == 200
+                        assert resp.read() == b"ok\n"
+                assert not shutdown_event.is_set()
+                with urlopen(f"{base}/{safe_name}", timeout=5) as resp:
+                    assert resp.status == 200
+                    assert resp.read() == sample_content
+                shutdown_event.wait(timeout=2)
+                assert shutdown_event.is_set()
+            finally:
+                server.shutdown()
+                server.server_close()
+        finally:
+            shutil.rmtree(tmpdir, ignore_errors=True)
+
     def test_timeout_exits_without_download(self, free_port: int):
         """With --timeout, if no request is made, process exits 1 and cleans up."""
         with tempfile.NamedTemporaryFile(delete=False, suffix=".bin") as f:

@@ -20,7 +20,8 @@ The server does not implement authentication or TLS. It is meant for short-lived
 
 ## Path and URL handling
 
-- Only the **exact** path `/<safe_name>` is served (after URL-unquoting). No directory traversal: the safe name is derived from the original basename and contains no slashes; requests with `/` or `%2f` in the path do not match.
+- **`/health`** (GET or HEAD) returns a fixed small response and does not expose the served filename or file contents.
+- Only the **exact** path `/<safe_name>` serves the file (after URL-unquoting). No directory traversal: the safe name is derived from the original basename and contains no slashes; requests with `/` or `%2f` in the path do not match.
 - Query strings are stripped before path matching: `/<safe_name>?x=1` is treated the same as `/<safe_name>` and will serve the file.
 - The `Content-Disposition` filename is the safe name (alphanumeric, `_`, `-`, `.` only), so header injection from the filename is not an issue.
 

@@ -2,7 +2,7 @@
 
 ## What it is
 
-**termux-single-file-serve** is a minimal, single-use HTTP server. You give it one file; it copies that file into a temporary directory, serves it over HTTP on a configurable address and port, and prints a download URL. As soon as the first GET request for that file is responded to (response sent and flushed), the server deletes the temporary copy and exits. See [Behavior](behavior.md) for the exact semantics (e.g. client disconnecting mid-transfer).
+**termux-single-file-serve** is a minimal, single-use HTTP server. You give it one file; it copies that file into a temporary directory, serves it over HTTP on a configurable address and port, and prints a download URL. **`GET /health`** and **`HEAD /health`** are supported for liveness checks and do not end the session. As soon as the first GET request **for that file** is responded to (response sent and flushed), the server deletes the temporary copy and exits. See [Behavior](behavior.md) for the exact semantics (e.g. client disconnecting mid-transfer).
 
 - **Single use:** One file, one download, then shutdown. No long-lived server or leftover temp files.
 - **No dependencies:** Python 3 standard library only.
@@ -12,7 +12,7 @@
 
 1. **Simple:** One command, one file, one URL. No config files or daemons.
 2. **Safe by default:** Binds to localhost only unless you opt in to `--bind 0.0.0.0`.
-3. **Clean:** Temp copy and server are removed after the first successful request.
+3. **Clean:** Temp copy and server are removed after the first successful **file** request (not after `/health`).
 
 ## When to use it
 
@@ -23,7 +23,7 @@
 ## When not to use it
 
 - Serving many files or a directory: use a normal HTTP server or `python3 -m http.server`.
-- Long-lived or multi-request serving: this tool exits after the first request for the file.
+- Long-lived or multi-request serving: this tool exits after the first **file** download; only `/health` is exempt from shutdown.
 - Production or multi-user use: this is a minimal, local, single-file helper.
 
 ## Related docs

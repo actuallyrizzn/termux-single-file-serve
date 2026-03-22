@@ -101,6 +101,55 @@ class TestSingleFileHandler:
         handler, server = self._make_request("/foo.bin", "foo.bin", method="HEAD")
         server._on_download_done.assert_not_called()
 
+    def test_health_get_does_not_trigger_shutdown(self):
+        handler, server = self._make_request("/health", "foo.bin")
+        handler.send_response.assert_called_once_with(200)
+        assert handler.wfile.getvalue() == b"ok\n"
+        server._on_download_done.assert_not_called()
+
+    def test_health_get_with_query_does_not_trigger_shutdown(self):
+        handler, server = self._make_request("/health?probe=1", "foo.bin")
+        handler.send_response.assert_called_once_with(200)
+        assert handler.wfile.getvalue() == b"ok\n"
+        server._on_download_done.assert_not_called()
+
+    def test_health_head_does_not_trigger_shutdown(self):
+        handler, server = self._make_request("/health", "foo.bin", method="HEAD")
+        handler.send_response.assert_called_once_with(200)
+        assert handler.wfile.getvalue() == b""
+        server._on_download_done.assert_not_called()
+
+    def test_health_broken_pipe_does_not_trigger_shutdown(self):
+        """Health is not the one-shot download; broken pipe must not fire shutdown."""
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".bin") as f:
+            f.write(b"content")
+            served_path = f.name
+        try:
+            server = Mock(spec=HTTPServer)
+            server._served_path = served_path
+            server._safe_name = "foo.bin"
+            server._on_download_done = Mock()
+            request = Mock()
+            request.makefile.return_value = BytesIO(b"")
+            handler = SingleFileHandler(request, ("127.0.0.1", 0), server)
+            handler.path = "/health"
+            wfile = Mock()
+            wfile.write.side_effect = BrokenPipeError("broken")
+            handler.wfile = wfile
+            handler.requestline = "GET /health HTTP/1.1"
+            handler.command = "GET"
+            handler.send_response = Mock()
+            handler.send_header = Mock()
+            handler.end_headers = Mock()
+            handler.send_error = Mock()
+            handler.do_GET()
+            server._on_download_done.assert_not_called()
+        finally:
+            try:
+                os.unlink(served_path)
+            except OSError:
+                pass
+
     def test_callback_fires_on_broken_pipe(self):
         """BrokenPipeError during write must still trigger shutdown callback."""
         with tempfile.NamedTemporaryFile(delete=False, suffix=".bin") as f:

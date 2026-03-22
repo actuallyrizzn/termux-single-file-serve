@@ -20,6 +20,8 @@ The program will:
 4. Wait for the first GET request for that file (see [Behavior](behavior.md) for when “done” is triggered).
 5. After the response is sent, delete the temp copy and exit.
 
+While waiting, you can probe **`GET http://<host>:<port>/health`** or **`HEAD .../health`** as often as you like: they return `200` and plain text `ok` (body on GET only) and **do not** end the server or count as the file download. See [Behavior — Health endpoint](behavior.md#health-endpoint).
+
 ## Command-line options
 
 | Option | Short | Default | Description |
@@ -66,6 +68,13 @@ python3 serve.py ./file.apk -q
 
 ```bash
 python3 serve.py ./doc.pdf --bind 0.0.0.0 --port 8080 -q
+```
+
+**Health check** (server stays up until the real file is downloaded):
+
+```bash
+curl -sf http://127.0.0.1:8765/health
+# ok
 ```
 
 ## Output

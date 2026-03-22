@@ -32,7 +32,8 @@ python3 serve.py /path/to/your-file.apk
 
 - Copies the file into a temporary directory with a URL-safe name.
 - Starts a minimal HTTP server (default: bind `127.0.0.1`, port `8765`) and prints the download link (e.g. `http://127.0.0.1:8765/filename.apk`). The server is localhost-only by default; use `--bind 0.0.0.0` to listen on all interfaces (e.g. when the browser can’t reach loopback, such as on some Android setups).
-- After the first request for the file, deletes the temporary copy and shuts down the server.
+- Optional **`GET /health`** / **`HEAD /health`**: return `200` and do not shut down the server (for probes until you fetch the file URL).
+- After the first **file** GET, deletes the temporary copy and shuts down the server.
 
 No dependencies: Python 3 stdlib only.
 

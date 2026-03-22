@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """
 Single-use HTTP server: serve one file, then delete temp copy and exit after first download.
+GET/HEAD /health returns 200 without consuming the one-shot download (see docs/behavior.md).
 Usage: python serve.py <path-to-file>
 
 Copyright (C) 2025  Contributors to the termux-single-file-serve project
@@ -37,7 +38,35 @@ def url_safe_basename(path: str) -> str:
 
 
 class SingleFileHandler(SimpleHTTPRequestHandler):
-    """Serves one file; GET triggers shutdown, HEAD is informational only."""
+    """Serves one file; GET triggers shutdown, HEAD is informational only.
+
+    GET or HEAD /health returns 200 without consuming the one-shot download.
+    """
+
+    def _normalized_path(self) -> str:
+        """Strip query string, unquote, drop a single leading slash (exact segment, no traversal)."""
+        path = unquote(self.path.split("?", 1)[0])
+        if path.startswith("/"):
+            path = path[1:]
+        return path
+
+    def _handle_health(self) -> bool:
+        """If request targets /health, send 200 and return True. Does not call _on_download_done."""
+        if self._normalized_path() != "health":
+            return False
+        body = b"ok\n"
+        self.send_response(200)
+        self.send_header("Content-Type", "text/plain; charset=utf-8")
+        self.send_header("Content-Length", str(len(body)))
+        self.send_header("Connection", "close")
+        self.end_headers()
+        if self.command == "GET":
+            try:
+                self.wfile.write(body)
+                self.wfile.flush()
+            except (BrokenPipeError, ConnectionResetError, ConnectionAbortedError, OSError):
+                pass
+        return True
 
     def _resolve_request(self):
         """Validate request path and read file. Returns (data, safe_name) or None."""
@@ -46,10 +75,7 @@ class SingleFileHandler(SimpleHTTPRequestHandler):
         if not served_path or not safe_name:
             self.send_error(500, "Server misconfigured")
             return None
-        # Strip query string, unquote, exact-match only (no slash normalization or traversal).
-        path = unquote(self.path.split("?", 1)[0])
-        if path.startswith("/"):
-            path = path[1:]
+        path = self._normalized_path()
         if path != safe_name:
             self.send_error(404, "Not Found")
             return None
@@ -73,6 +99,8 @@ class SingleFileHandler(SimpleHTTPRequestHandler):
         self.end_headers()
 
     def do_GET(self):
+        if self._handle_health():
+            return
         result = self._resolve_request()
         if result is None:
             return
@@ -88,6 +116,8 @@ class SingleFileHandler(SimpleHTTPRequestHandler):
 
     def do_HEAD(self):
         """Return headers without body; does not consume the one-shot download."""
+        if self._handle_health():
+            return
         result = self._resolve_request()
         if result is None:
             return
