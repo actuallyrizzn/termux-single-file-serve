@@ -20,8 +20,7 @@ from urllib.request import urlopen
 class TestE2E:
     def test_full_flow_exits_after_download_and_cleans_up(self, free_port: int):
         tmpdir = tempfile.gettempdir()
-        for d in glob.glob(f"{tmpdir}/termux-serve-*"):
-            shutil.rmtree(d, ignore_errors=True)
+        pre_existing = set(glob.glob(f"{tmpdir}/termux-serve-*"))
         with tempfile.NamedTemporaryFile(delete=False, suffix=".txt") as f:
             f.write(b"e2e test content")
             src = f.name
@@ -45,7 +44,6 @@ class TestE2E:
                 time.sleep(0.05)
             stderr_diag = (proc.stderr.read() if proc.stderr else "") if url is None else ""
             assert url is not None, f"Expected URL in stdout. stderr: {stderr_diag}"
-            # GET thread triggers server to serve and exit; we then wait for the process to exit.
             body = []
             def do_get():
                 try:
@@ -63,9 +61,9 @@ class TestE2E:
             assert body[0] == b"e2e test content"
             assert proc.returncode == 0
             time.sleep(0.5)
-            leftovers = [d for d in glob.glob(f"{tmpdir}/termux-serve-*")]
-            assert not leftovers, f"Expected no leftover temp dirs, got: {leftovers}"
+            leftovers = set(glob.glob(f"{tmpdir}/termux-serve-*")) - pre_existing
+            assert not leftovers, f"Expected no new temp dirs, got: {leftovers}"
         finally:
             Path(src).unlink(missing_ok=True)
-            for d in glob.glob(f"{tempfile.gettempdir()}/termux-serve-*"):
+            for d in set(glob.glob(f"{tmpdir}/termux-serve-*")) - pre_existing:
                 shutil.rmtree(d, ignore_errors=True)

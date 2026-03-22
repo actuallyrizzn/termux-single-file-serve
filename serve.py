@@ -11,6 +11,7 @@ See <https://www.gnu.org/licenses/>.
 """
 
 import argparse
+import mimetypes
 import os
 import re
 import shutil
@@ -36,40 +37,69 @@ def url_safe_basename(path: str) -> str:
 
 
 class SingleFileHandler(SimpleHTTPRequestHandler):
-    """Serves one file; after sending it, triggers shutdown and cleanup."""
+    """Serves one file; GET triggers shutdown, HEAD is informational only."""
 
-    def do_GET(self):
+    def _resolve_request(self):
+        """Validate request path and read file. Returns (data, safe_name) or None."""
         served_path = getattr(self.server, "_served_path", None)
         safe_name = getattr(self.server, "_safe_name", None)
         if not served_path or not safe_name:
             self.send_error(500, "Server misconfigured")
-            return
-        # Use path only (strip query string); intentional exact-match after unquote (no slash normalization or path traversal).
+            return None
+        # Strip query string, unquote, exact-match only (no slash normalization or traversal).
         path = unquote(self.path.split("?", 1)[0])
         if path.startswith("/"):
             path = path[1:]
         if path != safe_name:
             self.send_error(404, "Not Found")
-            return
+            return None
         try:
             with open(served_path, "rb") as f:
                 data = f.read()
         except OSError:
             self.send_error(404, "Not Found")
-            return
+            return None
+        return data, safe_name
+
+    def _send_headers(self, safe_name, content_length):
+        """Send response status and common headers."""
+        content_type = mimetypes.guess_type(safe_name)[0] or "application/octet-stream"
         self.send_response(200)
-        self.send_header("Content-Type", "application/octet-stream")
-        self.send_header("Content-Length", str(len(data)))
+        self.send_header("Content-Type", content_type)
+        self.send_header("Content-Length", str(content_length))
         # safe_name is URL-sanitized (no quotes/newlines); safe for header value.
         self.send_header("Content-Disposition", f'attachment; filename="{safe_name}"')
         self.send_header("Connection", "close")
         self.end_headers()
-        self.wfile.write(data)
-        self.wfile.flush()
-        getattr(self.server, "_on_download_done", lambda: None)()
+
+    def do_GET(self):
+        result = self._resolve_request()
+        if result is None:
+            return
+        data, safe_name = result
+        try:
+            self._send_headers(safe_name, len(data))
+            self.wfile.write(data)
+            self.wfile.flush()
+        except (BrokenPipeError, ConnectionResetError, ConnectionAbortedError, OSError):
+            pass
+        finally:
+            getattr(self.server, "_on_download_done", lambda: None)()
+
+    def do_HEAD(self):
+        """Return headers without body; does not consume the one-shot download."""
+        result = self._resolve_request()
+        if result is None:
+            return
+        data, safe_name = result
+        try:
+            self._send_headers(safe_name, len(data))
+        except (BrokenPipeError, ConnectionResetError, ConnectionAbortedError, OSError):
+            pass
 
     def log_message(self, format, *args):
-        pass  # Quiet by default; remove to re-enable request logging
+        if os.environ.get("TERMUX_SERVE_DEBUG"):
+            super().log_message(format, *args)
 
 
 def _remove_tmpdir(tmpdir: str) -> bool:
@@ -82,8 +112,19 @@ def _remove_tmpdir(tmpdir: str) -> bool:
         return False
 
 
+def _read_version() -> str:
+    """Read version from VERSION file next to this script."""
+    try:
+        vf = os.path.join(os.path.dirname(os.path.abspath(__file__)), "VERSION")
+        with open(vf) as f:
+            return f.read().strip()
+    except OSError:
+        return "unknown"
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="Serve one file over HTTP, then cleanup after download.")
+    parser.add_argument("--version", action="version", version=f"%(prog)s {_read_version()}")
     parser.add_argument("file", help="Path to the file to share")
     parser.add_argument("--port", type=int, default=8765, help="Port (default: 8765)")
     parser.add_argument(
@@ -138,8 +179,12 @@ def main() -> int:
             self._safe_name = safe_name
             self._on_download_done = on_download_done
 
-    server = Server((bind, port), SingleFileHandler, served_path, safe_name, shutdown_event.set)
-    # Daemon thread so process can exit without joining; main thread runs shutdown/cleanup.
+    try:
+        server = Server((bind, port), SingleFileHandler, served_path, safe_name, shutdown_event.set)
+    except OSError as e:
+        print(f"Error: could not bind to {bind}:{port}: {e}", file=sys.stderr)
+        _remove_tmpdir(tmpdir)
+        return 1
     server_thread = threading.Thread(target=server.serve_forever, daemon=True)
     server_thread.start()
 
