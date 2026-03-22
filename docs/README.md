@@ -15,7 +15,7 @@ Full documentation for the project. Start here or jump to a section below.
 | [Development](development.md) | Venv, tests, project layout, contributing |
 | [API reference](reference.md) | Module and function reference |
 | [Troubleshooting](troubleshooting.md) | Common problems and fixes |
-| [License](LICENSE) | Non-code content license (CC BY-SA 4.0); code is GPL-3.0 (see repo root [LICENSE](../LICENSE)) |
+| [License](LICENSE) | Non-code content license (CC BY-SA 4.0); code is AGPL-3.0 (see repo root [LICENSE](../LICENSE)) |
 
 ## Quick start
 

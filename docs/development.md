@@ -5,7 +5,7 @@
 ```
 termux-single-file-serve/
 ├── serve.py           # Main script (entry point and logic)
-├── LICENSE            # GPL-3.0 for code
+├── LICENSE            # AGPL-3.0 for code
 ├── LICENSE-DOCS       # CC BY-SA 4.0 for non-code content
 ├── README.md
 ├── requirements.txt   # No runtime deps (stdlib only)

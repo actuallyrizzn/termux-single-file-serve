@@ -1,6 +1,6 @@
 # termux-single-file-serve
 
-**Code:** GPL-3.0 — see [LICENSE](LICENSE).  
+**Code:** AGPL-3.0 — see [LICENSE](LICENSE).  
 **Non-code content (docs, README, etc.):** CC BY-SA 4.0 — see [LICENSE-DOCS](LICENSE-DOCS).
 
 Single-use HTTP server for Termux: serve one file over localhost, then cleanup and exit after the first request for the file.
